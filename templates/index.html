@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - Gestor de Tareas{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">
+                <i class="fas fa-list me-2"></i>Mis Tareas
+            </h1>
+            <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Nueva Tarea
+            </a>
+        </div>
+
+        {% if tareas %}
+            <div class="row">
+                {% for tarea in tareas %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card task-card priority-{{ tarea.prioridad }} {{ 'completed' if tarea.completada else '' }}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">{{ tarea.titulo }}</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="{{ url_for('editar_tarea', id=tarea.id) }}">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ url_for('eliminar_tarea', id=tarea.id) }}" class="d-inline">
+                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar esta tarea?')">
+                                                    <i class="fas fa-trash me-2"></i>Eliminar
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            {% if tarea.descripcion %}
+                                <p class="card-text text-muted">{{ tarea.descripcion }}</p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex gap-2">
+                                    <span class="badge bg-{{ 'success' if tarea.prioridad == 'baja' else 'warning' if tarea.prioridad == 'media' else 'danger' }}">
+                                        {{ tarea.prioridad.title() }}
+                                    </span>
+                                    {% if tarea.fecha_limite %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-calendar me-1"></i>{{ tarea.fecha_limite.strftime('%d/%m/%Y') }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input toggle-task" type="checkbox" 
+                                           data-task-id="{{ tarea.id }}" 
+                                           {{ 'checked' if tarea.completada else '' }}>
+                                    <label class="form-check-label">
+                                        {{ 'Completada' if tarea.completada else 'Pendiente' }}
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>Creada: {{ tarea.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay tareas aún</h4>
+                <p class="text-muted">¡Crea tu primera tarea para comenzar a organizarte!</p>
+                <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Crear Primera Tarea
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    document.querySelectorAll('.toggle-task').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const card = this.closest('.task-card');
+            
+            fetch(`/tarea/${taskId}/toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.completada) {
+                    card.classList.add('completed');
+                    this.nextElementSibling.textContent = 'Completada';
+                } else {
+                    card.classList.remove('completed');
+                    this.nextElementSibling.textContent = 'Pendiente';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.checked = !this.checked; // Revert checkbox
+            });
+        });
+    });
+});
+</script>
+{% endblock %} 

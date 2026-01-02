@@ -3,74 +3,262 @@
 {% block title %}Inicio - Gestor de Tareas{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row mb-4">
+    <!-- Header -->
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0">
-                <i class="fas fa-list me-2"></i>Mis Tareas
-            </h1>
-            <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>Nueva Tarea
+            <div>
+                <h1 class="h2 mb-1">
+                    <i class="fas fa-list-check me-2"></i>Mis Tareas
+                </h1>
+                <p class="text-muted mb-0">Organiza y gestiona tus tareas de forma eficiente</p>
+            </div>
+            <a href="{{ url_for('main.nueva_tarea') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Nueva Tarea
             </a>
         </div>
 
-        {% if tareas %}
-            <div class="row">
-                {% for tarea in tareas %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card task-card priority-{{ tarea.prioridad }} {{ 'completed' if tarea.completada else '' }}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title mb-0">{{ tarea.titulo }}</h5>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ url_for('editar_tarea', id=tarea.id) }}">
-                                            <i class="fas fa-edit me-2"></i>Editar
-                                        </a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <form method="POST" action="{{ url_for('eliminar_tarea', id=tarea.id) }}" class="d-inline">
-                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('¿Estás seguro de que quieres eliminar esta tarea?')">
-                                                    <i class="fas fa-trash me-2"></i>Eliminar
-                                                </button>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </div>
+        <!-- Estadísticas -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0 opacity-75">Total de Tareas</h6>
+                                <h2 class="mb-0">{{ total_tareas }}</h2>
                             </div>
-                            
+                            <i class="fas fa-tasks fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0 opacity-75">Completadas</h6>
+                                <h2 class="mb-0">{{ tareas_completadas }}</h2>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0 opacity-75">Pendientes</h6>
+                                <h2 class="mb-0">{{ tareas_pendientes }}</h2>
+                            </div>
+                            <i class="fas fa-hourglass-half fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0 opacity-75">Porcentaje</h6>
+                                <h2 class="mb-0">{{ '0' if total_tareas == 0 else ((tareas_completadas / total_tareas * 100) | int) }}%</h2>
+                            </div>
+                            <i class="fas fa-chart-pie fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros y Búsqueda -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <!-- Búsqueda -->
+                    <div class="col-md-4">
+                        <label for="buscar" class="form-label">
+                            <i class="fas fa-search me-1"></i>Buscar
+                        </label>
+                        <input type="text" class="form-control" id="buscar" name="buscar" 
+                               value="{{ buscar }}" placeholder="Buscar por título o descripción...">
+                    </div>
+
+                    <!-- Filtro -->
+                    <div class="col-md-3">
+                        <label for="filtro" class="form-label">
+                            <i class="fas fa-filter me-1"></i>Filtro
+                        </label>
+                        <select class="form-select" id="filtro" name="filtro">
+                            <option value="todas" {{ 'selected' if filtro == 'todas' else '' }}>Todas las tareas</option>
+                            <option value="pendientes" {{ 'selected' if filtro == 'pendientes' else '' }}>Solo pendientes</option>
+                            <option value="completadas" {{ 'selected' if filtro == 'completadas' else '' }}>Solo completadas</option>
+                        </select>
+                    </div>
+
+                    <!-- Ordenar -->
+                    <div class="col-md-3">
+                        <label for="orden" class="form-label">
+                            <i class="fas fa-sort me-1"></i>Ordenar por
+                        </label>
+                        <select class="form-select" id="orden" name="orden">
+                            <option value="reciente" {{ 'selected' if orden == 'reciente' else '' }}>Más recientes</option>
+                            <option value="prioridad" {{ 'selected' if orden == 'prioridad' else '' }}>Prioridad</option>
+                            <option value="fecha_limite" {{ 'selected' if orden == 'fecha_limite' else '' }}>Fecha límite</option>
+                        </select>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-check me-1"></i>Aplicar
+                        </button>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-redo me-1"></i>Limpiar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+            <div class="row g-4">
+                {% for tarea in tareas %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card task-card shadow-sm priority-{{ tarea.prioridad }} {{ 'completed' if tarea.completada else '' }}" 
+                         data-task-id="{{ tarea.id }}">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-start">
+                            <h5 class="card-title mb-0 flex-grow-1">{{ tarea.titulo }}</h5>
+                            <div class="dropdown ms-2">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('main.editar_tarea', id=tarea.id) }}">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('main.eliminar_tarea', id=tarea.id) }}" class="d-inline">
+                                            <button type="submit" class="dropdown-item text-danger" 
+                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar esta tarea?')">
+                                                <i class="fas fa-trash me-2"></i>Eliminar
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
                             {% if tarea.descripcion %}
-                                <p class="card-text text-muted">{{ tarea.descripcion }}</p>
+                                <p class="card-text text-muted small mb-3">{{ tarea.descripcion[:100] }}{{ '...' if tarea.descripcion|length > 100 else '' }}</p>
                             {% endif %}
-                            
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex gap-2">
-                                    <span class="badge bg-{{ 'success' if tarea.prioridad == 'baja' else 'warning' if tarea.prioridad == 'media' else 'danger' }}">
-                                        {{ tarea.prioridad.title() }}
+
+                            <!-- Tags de Prioridad y Fecha -->
+                            <div class="mb-3">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-{{ tarea.get_priority_enum.badge_color }}">
+                                        <i class="fas fa-flag me-1"></i>{{ tarea.prioridad.title() }}
                                     </span>
+                                    
                                     {% if tarea.fecha_limite %}
-                                        <span class="badge bg-info">
+                                        <span class="badge bg-info {{ 'bg-danger' if tarea.esta_vencida else '' }}">
                                             <i class="fas fa-calendar me-1"></i>{{ tarea.fecha_limite.strftime('%d/%m/%Y') }}
+                                            {% if tarea.dias_restantes != None %}
+                                                <small class="ms-1">
+                                                    {% if tarea.dias_restantes < 0 %}
+                                                        (vencida hace {{ -tarea.dias_restantes }} d)
+                                                    {% elif tarea.dias_restantes == 0 %}
+                                                        (hoy)
+                                                    {% elif tarea.dias_restantes == 1 %}
+                                                        (mañana)
+                                                    {% else %}
+                                                        (en {{ tarea.dias_restantes }} días)
+                                                    {% endif %}
+                                                </small>
+                                            {% endif %}
                                         </span>
                                     {% endif %}
                                 </div>
-                                
-                                <div class="form-check">
-                                    <input class="form-check-input toggle-task" type="checkbox" 
-                                           data-task-id="{{ tarea.id }}" 
-                                           {{ 'checked' if tarea.completada else '' }}>
-                                    <label class="form-check-label">
-                                        {{ 'Completada' if tarea.completada else 'Pendiente' }}
-                                    </label>
-                                </div>
                             </div>
-                            
-                            <small class="text-muted">
-                                <i class="fas fa-clock me-1"></i>Creada: {{ tarea.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
-                            </small>
+
+                            <!-- Información de Cre5x text-muted mb-4 opacity-50"></i>
+                <h3 class="text-muted mb-2">
+                    {% if buscar or filtro != 'todas' %}
+                        No se encontraron tareas
+                    {% else %}
+                        No hay tareas aún
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-4">
+                    {% if buscar or filtro != 'todas' %}
+                        Intenta cambiar tus criterios de búsqueda
+                    {% else %}
+                        ¡Crea tu primera tarea para comenzar a organizarte!
+                    {% endif %}
+                </p>
+    // Toggle de tareas (marcar como completada)
+    document.querySelectorAll('.toggle-task').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const card = document.querySelector(`[data-task-id="${taskId}"]`);
+            
+            // Mostrar estado de carga
+            this.disabled = true;
+            
+            fetch(`{{ url_for('main.toggle_tarea', id='') }}${taskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Actualizar UI
+                    const label = this.parentElement.querySelector('.form-check-label');
+                    if (data.completada) {
+                        card.classList.add('completed');
+                        label.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Completada</span>';
+                    } else {
+                        card.classList.remove('completed');
+                        label.innerHTML = '<span class="text-muted">Marcar como completada</span>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.checked = !this.checked; // Revertir cambio
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}heck-input toggle-task cursor-pointer" type="checkbox" 
+                                       id="task-{{ tarea.id }}" data-task-id="{{ tarea.id }}"
+                                       {{ 'checked' if tarea.completada else '' }}>
+                                <label class="form-check-label cursor-pointer" for="task-{{ tarea.id }}">
+                                    {% if tarea.completada %}
+                                        <span class="text-success"><i class="fas fa-check me-1"></i>Completada</span>
+                                    {% else %}
+                                        <span class="text-muted">Marcar como completada</span>
+                                    {% endif %}
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

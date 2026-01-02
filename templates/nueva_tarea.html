@@ -5,56 +5,67 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">
-                    <i class="fas fa-plus me-2"></i>Nueva Tarea
-                </h4>
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient-primary text-white border-0">
+                <h3 class="mb-0">
+                    <i class="fas fa-file-circle-plus me-2"></i>Nueva Tarea
+                </h3>
+                <p class="mb-0 mt-2 opacity-75">Crea una nueva tarea para organizarte</p>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="titulo" class="form-label">
-                            <i class="fas fa-heading me-1"></i>Título *
+            <div class="card-body p-4">
+                <form method="POST" id="form-nueva-tarea" novalidate>
+                    <div class="mb-4">
+                        <label for="titulo" class="form-label fw-bold">
+                            <i class="fas fa-heading me-2 text-primary"></i>Título <span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="form-control" id="titulo" name="titulo" 
-                               required maxlength="100" placeholder="Ingresa el título de la tarea">
+                        <input type="text" class="form-control form-control-lg" id="titulo" name="titulo" 
+                               required maxlength="100" placeholder="Ej: Completar proyecto" 
+                               autocomplete="off">
+                        <small class="form-text text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>Sé específico y conciso (máx. 100 caracteres)
+                        </small>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="descripcion" class="form-label">
-                            <i class="fas fa-align-left me-1"></i>Descripción
+                    <div class="mb-4">
+                        <label for="descripcion" class="form-label fw-bold">
+                            <i class="fas fa-align-left me-2 text-primary"></i>Descripción
                         </label>
                         <textarea class="form-control" id="descripcion" name="descripcion" 
-                                  rows="4" placeholder="Describe los detalles de la tarea (opcional)"></textarea>
+                                  rows="4" maxlength="1000" placeholder="Describe los detalles de la tarea (opcional)"></textarea>
+                        <small class="form-text text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>Proporciona contexto o pasos (máx. 1000 caracteres)
+                        </small>
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="fecha_limite" class="form-label">
-                                <i class="fas fa-calendar me-1"></i>Fecha Límite
+                        <div class="col-md-6 mb-4">
+                            <label for="fecha_limite" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-2 text-primary"></i>Fecha Límite
                             </label>
-                            <input type="date" class="form-control" id="fecha_limite" name="fecha_limite">
+                            <input type="date" class="form-control form-control-lg" id="fecha_limite" name="fecha_limite">
+                            <small class="form-text text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>Opcional: establece una fecha de vencimiento
+                            </small>
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="prioridad" class="form-label">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Prioridad
+                        <div class="col-md-6 mb-4">
+                            <label for="prioridad" class="form-label fw-bold">
+                                <i class="fas fa-flag me-2 text-primary"></i>Prioridad
                             </label>
-                            <select class="form-select" id="prioridad" name="prioridad">
-                                <option value="baja">Baja</option>
-                                <option value="media" selected>Media</option>
-                                <option value="alta">Alta</option>
+                            <select class="form-select form-select-lg" id="prioridad" name="prioridad">
+                                <option value="baja">🟢 Baja</option>
+                                <option value="media" selected>🟡 Media</option>
+                                <option value="alta">🔴 Alta</option>
                             </select>
                         </div>
                     </div>
                     
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Crear Tarea
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                            <i class="fas fa-check me-2"></i>Crear Tarea
                         </button>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-1"></i>Cancelar
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Cancelar
                         </a>
                     </div>
                 </form>
@@ -67,14 +78,26 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-   
+    // Establecer fecha mínima (hoy)
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('fecha_limite').min = today;
     
+    // Auto-resize textarea
     const textarea = document.getElementById('descripcion');
-    textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
+    function autoResizeTextarea() {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
+    }
+    
+    textarea.addEventListener('input', autoResizeTextarea);
+    
+    // Validación básica del formulario
+    const form = document.getElementById('form-nueva-tarea');
+    form.addEventListener('submit', function(e) {
+        if (!document.getElementById('titulo').value.trim()) {
+            e.preventDefault();
+            alert('El título es obligatorio');
+        }
     });
 });
 </script>

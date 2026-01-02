@@ -17,7 +17,7 @@ Una aplicación web moderna para gestionar tareas personales, construida con Fla
 
 1. **Clona o descarga el proyecto**
    ```bash
-   git clone <url-del-repositorio>
+   git clone <https://github.com/mercurytc75/gestor_tareas.git>
    cd gestor_tareas
    ```
 

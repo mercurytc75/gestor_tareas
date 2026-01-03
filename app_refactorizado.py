@@ -1,20 +1,27 @@
 """
-GESTOR DE TAREAS v2.0 - REFACTORIZADO
-Aplicación simplificada en un único archivo mantenible
+GESTOR DE TAREAS v2.0 - VERSIÓN REFACTORIZADA
+Un único archivo principal que contiene toda la lógica
+Estructura limpia y mantenible sin excesiva modularización
 """
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
+from enum import Enum
 
 # ==================== CONFIGURACIÓN ====================
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tareas.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+class Config:
+    """Configuración centralizada"""
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///tareas.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+# ==================== INICIALIZACIÓN ====================
+
+app = Flask(__name__)
+app.config.from_object(Config)
 db = SQLAlchemy(app)
 
 # ==================== MODELOS ====================
@@ -31,7 +38,6 @@ class Tarea(db.Model):
     
     @property
     def dias_restantes(self):
-        """Calcula días restantes hasta la fecha límite"""
         if not self.fecha_limite or self.completada:
             return None
         dias = (self.fecha_limite.date() - datetime.utcnow().date()).days
@@ -39,38 +45,32 @@ class Tarea(db.Model):
     
     @property
     def esta_vencida(self):
-        """Verifica si la tarea está vencida"""
         return self.fecha_limite and not self.completada and datetime.utcnow() > self.fecha_limite
     
     @property
     def color_prioridad(self):
-        """Retorna el color de Bootstrap por prioridad"""
         colores = {'baja': 'success', 'media': 'warning', 'alta': 'danger'}
         return colores.get(self.prioridad, 'secondary')
 
 # ==================== VALIDADORES ====================
 
 def validar_tarea(titulo, descripcion, fecha_limite_str, prioridad):
-    """Valida datos de tarea. Retorna (es_valido, errores, datos)"""
+    """Valida datos de tarea y retorna (es_valido, errores, datos)"""
     errores = []
     
-    # Validar título
     titulo = (titulo or '').strip()
     if not titulo:
         errores.append('El título es obligatorio')
     elif len(titulo) > 100:
         errores.append('El título no puede exceder 100 caracteres')
     
-    # Validar descripción
     descripcion = (descripcion or '').strip()
     if len(descripcion) > 1000:
         errores.append('La descripción no puede exceder 1000 caracteres')
     
-    # Validar prioridad
     if prioridad not in ['baja', 'media', 'alta']:
         errores.append('Prioridad inválida')
     
-    # Validar fecha límite
     fecha_limite = None
     if fecha_limite_str:
         try:
@@ -99,20 +99,20 @@ def index():
     # Query base
     query = Tarea.query
     
-    # Aplicar filtros
+    # Filtros
     if filtro == 'pendientes':
         query = query.filter_by(completada=False)
     elif filtro == 'completadas':
         query = query.filter_by(completada=True)
     
-    # Aplicar búsqueda
+    # Búsqueda
     if buscar:
         query = query.filter(
             (Tarea.titulo.ilike(f'%{buscar}%')) |
             (Tarea.descripcion.ilike(f'%{buscar}%'))
         )
     
-    # Aplicar ordenamiento
+    # Ordenamiento
     if orden == 'prioridad':
         prioridad_orden = {'alta': 1, 'media': 2, 'baja': 3}
         tareas = query.all()
@@ -123,7 +123,7 @@ def index():
     else:
         tareas = query.order_by(Tarea.fecha_creacion.desc()).all()
     
-    # Calcular estadísticas
+    # Estadísticas
     total = Tarea.query.count()
     completadas = Tarea.query.filter_by(completada=True).count()
     pendientes = total - completadas
@@ -228,7 +228,7 @@ def toggle_tarea(id):
 
 @app.route('/api/estadisticas')
 def get_estadisticas():
-    """API de estadísticas (JSON)"""
+    """API de estadísticas"""
     total = Tarea.query.count()
     completadas = Tarea.query.filter_by(completada=True).count()
     return jsonify({
@@ -239,12 +239,12 @@ def get_estadisticas():
 
 @app.errorhandler(404)
 def no_encontrado(e):
-    """Manejar errores 404"""
+    """Manejo de errores 404"""
     return render_template('error.html', code=404, message='Página no encontrada'), 404
 
 @app.errorhandler(500)
 def error_servidor(e):
-    """Manejar errores 500"""
+    """Manejo de errores 500"""
     db.session.rollback()
     return render_template('error.html', code=500, message='Error interno del servidor'), 500
 
@@ -255,23 +255,5 @@ if __name__ == '__main__':
         db.create_all()
         print("✓ Base de datos inicializada")
         print("✓ Ejecutando en http://localhost:5000")
+    
     app.run(debug=True, host='0.0.0.0', port=5000)
-
-@app.route('/tarea/<int:id>/completar', methods=['POST'])
-def completar_tarea(id):
-    tarea = Tarea.query.get_or_404(id)
-    tarea.completada = True
-    db.session.commit()
-    flash('Tarea marcada como completada!', 'success')
-    return redirect(url_for('index'))
-
-@app.route('/tarea/<int:id>/descompletar', methods=['POST'])
-def descompletar_tarea(id):
-    tarea = Tarea.query.get_or_404(id)
-    tarea.completada = False
-    db.session.commit()
-    flash('Tarea marcada como pendiente!', 'success')
-    return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    app.run(debug=True) 

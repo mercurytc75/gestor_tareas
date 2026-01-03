@@ -13,7 +13,7 @@
                 </h1>
                 <p class="text-muted mb-0">Organiza y gestiona tus tareas de forma eficiente</p>
             </div>
-            <a href="{{ url_for('main.nueva_tarea') }}" class="btn btn-primary btn-lg">
+            <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary btn-lg">
                 <i class="fas fa-plus me-2"></i>Nueva Tarea
             </a>
         </div>
@@ -120,7 +120,7 @@
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-check me-1"></i>Aplicar
                         </button>
-                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary w-100">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary w-100">
                             <i class="fas fa-redo me-1"></i>Limpiar
                         </a>
                     </div>
@@ -129,6 +129,11 @@
         </div>
     </div>
 </div>
+
+<!-- Tareas -->
+<div class="row">
+    <div class="col-12">
+        {% if tareas %}
             <div class="row g-4">
                 {% for tarea in tareas %}
                 <div class="col-lg-4 col-md-6">
@@ -142,13 +147,13 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('main.editar_tarea', id=tarea.id) }}">
+                                        <a class="dropdown-item" href="{{ url_for('editar_tarea', id=tarea.id) }}">
                                             <i class="fas fa-edit me-2"></i>Editar
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form method="POST" action="{{ url_for('main.eliminar_tarea', id=tarea.id) }}" class="d-inline">
+                                        <form method="POST" action="{{ url_for('eliminar_tarea', id=tarea.id) }}" class="d-inline">
                                             <button type="submit" class="dropdown-item text-danger" 
                                                     onclick="return confirm('¿Estás seguro de que quieres eliminar esta tarea?')">
                                                 <i class="fas fa-trash me-2"></i>Eliminar
@@ -192,7 +197,27 @@
                                 </div>
                             </div>
 
-                            <!-- Información de Cre5x text-muted mb-4 opacity-50"></i>
+                            <!-- Checkbox Toggle -->
+                            <div class="form-check">
+                                <input class="form-check-input toggle-task cursor-pointer" type="checkbox" 
+                                       id="task-{{ tarea.id }}" data-task-id="{{ tarea.id }}"
+                                       {{ 'checked' if tarea.completada else '' }}>
+                                <label class="form-check-label cursor-pointer" for="task-{{ tarea.id }}">
+                                    {% if tarea.completada %}
+                                        <span class="text-success"><i class="fas fa-check me-1"></i>Completada</span>
+                                    {% else %}
+                                        <span class="text-muted">Marcar como completada</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
                 <h3 class="text-muted mb-2">
                     {% if buscar or filtro != 'todas' %}
                         No se encontraron tareas
@@ -207,16 +232,28 @@
                         ¡Crea tu primera tarea para comenzar a organizarte!
                     {% endif %}
                 </p>
+                <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Crear Primera Tarea
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     // Toggle de tareas (marcar como completada)
     document.querySelectorAll('.toggle-task').forEach(function(checkbox) {
         checkbox.addEventListener('change', function() {
             const taskId = this.dataset.taskId;
-            const card = document.querySelector(`[data-task-id="${taskId}"]`);
+            const card = document.querySelector(`[data-task-id="${taskId}"]`).closest('.task-card');
             
             // Mostrar estado de carga
             this.disabled = true;
             
-            fetch(`{{ url_for('main.toggle_tarea', id='') }}${taskId}`, {
+            fetch(`/tarea/${taskId}/toggle`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -248,67 +285,4 @@
     });
 });
 </script>
-{% endblock %}heck-input toggle-task cursor-pointer" type="checkbox" 
-                                       id="task-{{ tarea.id }}" data-task-id="{{ tarea.id }}"
-                                       {{ 'checked' if tarea.completada else '' }}>
-                                <label class="form-check-label cursor-pointer" for="task-{{ tarea.id }}">
-                                    {% if tarea.completada %}
-                                        <span class="text-success"><i class="fas fa-check me-1"></i>Completada</span>
-                                    {% else %}
-                                        <span class="text-muted">Marcar como completada</span>
-                                    {% endif %}
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                <h4 class="text-muted">No hay tareas aún</h4>
-                <p class="text-muted">¡Crea tu primera tarea para comenzar a organizarte!</p>
-                <a href="{{ url_for('nueva_tarea') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i>Crear Primera Tarea
-                </a>
-            </div>
-        {% endif %}
-    </div>
-</div>
 {% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    document.querySelectorAll('.toggle-task').forEach(function(checkbox) {
-        checkbox.addEventListener('change', function() {
-            const taskId = this.dataset.taskId;
-            const card = this.closest('.task-card');
-            
-            fetch(`/tarea/${taskId}/toggle`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.completada) {
-                    card.classList.add('completed');
-                    this.nextElementSibling.textContent = 'Completada';
-                } else {
-                    card.classList.remove('completed');
-                    this.nextElementSibling.textContent = 'Pendiente';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                this.checked = !this.checked; // Revert checkbox
-            });
-        });
-    });
-});
-</script>
-{% endblock %} 

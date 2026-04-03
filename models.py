@@ -14,10 +14,6 @@ class PriorityEnum(str, Enum):
     ALTA = 'alta'
 
     @property
-    def display_name(self):
-        return self.value.capitalize()
-
-    @property
     def badge_color(self):
         colors = {
             'baja': 'success',
@@ -40,19 +36,7 @@ class Tarea(db.Model):
     
     def __repr__(self):
         return f'<Tarea {self.id}: {self.titulo}>'
-    
-    def to_dict(self):
-        """Convertir a diccionario"""
-        return {
-            'id': self.id,
-            'titulo': self.titulo,
-            'descripcion': self.descripcion,
-            'completada': self.completada,
-            'fecha_creacion': self.fecha_creacion.isoformat(),
-            'fecha_limite': self.fecha_limite.isoformat() if self.fecha_limite else None,
-            'prioridad': self.prioridad
-        }
-    
+
     @property
     def dias_restantes(self):
         """Calcular días restantes hasta la fecha límite"""

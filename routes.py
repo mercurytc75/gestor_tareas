@@ -3,7 +3,7 @@ Rutas de la aplicación
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime
-from models import Tarea, db, PriorityEnum
+from models import Tarea, db
 from validators import validar_formulario_tarea
 
 main_bp = Blueprint('main', __name__)

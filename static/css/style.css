@@ -39,9 +39,14 @@ body {
 }
 
 /* Navbar */
+.app-navbar,
 .navbar {
     background: var(--gradient) !important;
     box-shadow: var(--shadow);
+}
+
+.app-footer {
+    backdrop-filter: blur(6px);
 }
 
 .navbar-brand {

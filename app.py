@@ -1,277 +1,42 @@
 """
-GESTOR DE TAREAS v2.0 - REFACTORIZADO
-Aplicación simplificada en un único archivo mantenible
+Gestor de Tareas — fábrica de aplicación Flask.
 """
-
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
 import os
+from flask import Flask, render_template
 
-# ==================== CONFIGURACIÓN ====================
+from config import config as config_map
+from models import db
+from routes import main_bp
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tareas.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+def create_app(config_name=None):
+    """Crea y configura la aplicación."""
+    name = config_name or os.environ.get('FLASK_ENV', 'development')
+    if name not in config_map:
+        name = 'default'
 
-# ==================== MODELOS ====================
+    app = Flask(__name__, instance_relative_config=True)
+    app.config.from_object(config_map[name])
 
-class Tarea(db.Model):
-    """Modelo de Tarea con propiedades útiles"""
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(100), nullable=False, index=True)
-    descripcion = db.Column(db.Text, nullable=True)
-    completada = db.Column(db.Boolean, default=False, index=True)
-    fecha_creacion = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    fecha_limite = db.Column(db.DateTime, nullable=True, index=True)
-    prioridad = db.Column(db.String(20), default='media')
-    
-    @property
-    def dias_restantes(self):
-        """Calcula días restantes hasta la fecha límite"""
-        if not self.fecha_limite or self.completada:
-            return None
-        dias = (self.fecha_limite.date() - datetime.utcnow().date()).days
-        return dias
-    
-    @property
-    def esta_vencida(self):
-        """Verifica si la tarea está vencida"""
-        return self.fecha_limite and not self.completada and datetime.utcnow() > self.fecha_limite
-    
-    @property
-    def color_prioridad(self):
-        """Retorna el color de Bootstrap por prioridad"""
-        colores = {'baja': 'success', 'media': 'warning', 'alta': 'danger'}
-        return colores.get(self.prioridad, 'secondary')
+    os.makedirs(app.instance_path, exist_ok=True)
+    # En testing la URI en memoria ya viene de TestingConfig; no sobrescribir.
+    if not os.environ.get('DATABASE_URL') and name != 'testing':
+        db_path = os.path.join(app.instance_path, 'tareas.db').replace('\\', '/')
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
-# ==================== VALIDADORES ====================
+    db.init_app(app)
+    app.register_blueprint(main_bp)
 
-def validar_tarea(titulo, descripcion, fecha_limite_str, prioridad):
-    """Valida datos de tarea. Retorna (es_valido, errores, datos)"""
-    errores = []
-    
-    # Validar título
-    titulo = (titulo or '').strip()
-    if not titulo:
-        errores.append('El título es obligatorio')
-    elif len(titulo) > 100:
-        errores.append('El título no puede exceder 100 caracteres')
-    
-    # Validar descripción
-    descripcion = (descripcion or '').strip()
-    if len(descripcion) > 1000:
-        errores.append('La descripción no puede exceder 1000 caracteres')
-    
-    # Validar prioridad
-    if prioridad not in ['baja', 'media', 'alta']:
-        errores.append('Prioridad inválida')
-    
-    # Validar fecha límite
-    fecha_limite = None
-    if fecha_limite_str:
-        try:
-            fecha_limite = datetime.strptime(fecha_limite_str, '%Y-%m-%d')
-            if fecha_limite.date() < datetime.utcnow().date():
-                errores.append('La fecha límite no puede ser en el pasado')
-        except ValueError:
-            errores.append('Formato de fecha inválido')
-    
-    return len(errores) == 0, errores, {
-        'titulo': titulo,
-        'descripcion': descripcion,
-        'fecha_limite': fecha_limite,
-        'prioridad': prioridad
-    }
+    @app.errorhandler(404)
+    def no_encontrado(_e):
+        return render_template('error.html', code=404, message='Página no encontrada'), 404
 
-# ==================== RUTAS ====================
-
-@app.route('/')
-def index():
-    """Página principal con filtros y búsqueda"""
-    filtro = request.args.get('filtro', 'todas')
-    orden = request.args.get('orden', 'reciente')
-    buscar = request.args.get('buscar', '').strip()
-    
-    # Query base
-    query = Tarea.query
-    
-    # Aplicar filtros
-    if filtro == 'pendientes':
-        query = query.filter_by(completada=False)
-    elif filtro == 'completadas':
-        query = query.filter_by(completada=True)
-    
-    # Aplicar búsqueda
-    if buscar:
-        query = query.filter(
-            (Tarea.titulo.ilike(f'%{buscar}%')) |
-            (Tarea.descripcion.ilike(f'%{buscar}%'))
-        )
-    
-    # Aplicar ordenamiento
-    if orden == 'prioridad':
-        prioridad_orden = {'alta': 1, 'media': 2, 'baja': 3}
-        tareas = query.all()
-        tareas.sort(key=lambda t: (prioridad_orden.get(t.prioridad, 4), t.fecha_creacion.timestamp()), reverse=True)
-    elif orden == 'fecha_limite':
-        query = query.filter(Tarea.fecha_limite.isnot(None))
-        tareas = query.order_by(Tarea.fecha_limite.asc()).all()
-    else:
-        tareas = query.order_by(Tarea.fecha_creacion.desc()).all()
-    
-    # Calcular estadísticas
-    total = Tarea.query.count()
-    completadas = Tarea.query.filter_by(completada=True).count()
-    pendientes = total - completadas
-    
-    return render_template(
-        'index.html',
-        tareas=tareas,
-        filtro=filtro,
-        orden=orden,
-        buscar=buscar,
-        total_tareas=total,
-        tareas_completadas=completadas,
-        tareas_pendientes=pendientes
-    )
-
-@app.route('/tarea/nueva', methods=['GET', 'POST'])
-def nueva_tarea():
-    """Crear nueva tarea"""
-    if request.method == 'POST':
-        es_valido, errores, datos = validar_tarea(
-            request.form.get('titulo'),
-            request.form.get('descripcion'),
-            request.form.get('fecha_limite'),
-            request.form.get('prioridad', 'media')
-        )
-        
-        if not es_valido:
-            for error in errores:
-                flash(error, 'error')
-            return redirect(url_for('nueva_tarea'))
-        
-        try:
-            tarea = Tarea(**datos)
-            db.session.add(tarea)
-            db.session.commit()
-            flash('¡Tarea creada exitosamente!', 'success')
-            return redirect(url_for('index'))
-        except Exception as e:
-            db.session.rollback()
-            flash('Error al crear la tarea', 'error')
-            return redirect(url_for('nueva_tarea'))
-    
-    return render_template('nueva_tarea.html')
-
-@app.route('/tarea/<int:id>/editar', methods=['GET', 'POST'])
-def editar_tarea(id):
-    """Editar tarea existente"""
-    tarea = Tarea.query.get_or_404(id)
-    
-    if request.method == 'POST':
-        es_valido, errores, datos = validar_tarea(
-            request.form.get('titulo'),
-            request.form.get('descripcion'),
-            request.form.get('fecha_limite'),
-            request.form.get('prioridad', 'media')
-        )
-        
-        if not es_valido:
-            for error in errores:
-                flash(error, 'error')
-            return redirect(url_for('editar_tarea', id=id))
-        
-        try:
-            tarea.titulo = datos['titulo']
-            tarea.descripcion = datos['descripcion']
-            tarea.fecha_limite = datos['fecha_limite']
-            tarea.prioridad = datos['prioridad']
-            db.session.commit()
-            flash('¡Tarea actualizada exitosamente!', 'success')
-            return redirect(url_for('index'))
-        except Exception as e:
-            db.session.rollback()
-            flash('Error al actualizar la tarea', 'error')
-            return redirect(url_for('editar_tarea', id=id))
-    
-    return render_template('editar_tarea.html', tarea=tarea)
-
-@app.route('/tarea/<int:id>/eliminar', methods=['POST'])
-def eliminar_tarea(id):
-    """Eliminar tarea"""
-    tarea = Tarea.query.get_or_404(id)
-    try:
-        db.session.delete(tarea)
-        db.session.commit()
-        flash('¡Tarea eliminada exitosamente!', 'success')
-    except Exception:
+    @app.errorhandler(500)
+    def error_servidor(_e):
         db.session.rollback()
-        flash('Error al eliminar la tarea', 'error')
-    return redirect(url_for('index'))
+        return render_template('error.html', code=500, message='Error interno del servidor'), 500
 
-@app.route('/tarea/<int:id>/toggle', methods=['POST'])
-def toggle_tarea(id):
-    """Cambiar estado de completada (AJAX)"""
-    tarea = Tarea.query.get_or_404(id)
-    try:
-        tarea.completada = not tarea.completada
-        db.session.commit()
-        return jsonify({'completada': tarea.completada, 'success': True})
-    except Exception:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': 'Error al actualizar'}), 500
+    return app
 
-@app.route('/api/estadisticas')
-def get_estadisticas():
-    """API de estadísticas (JSON)"""
-    total = Tarea.query.count()
-    completadas = Tarea.query.filter_by(completada=True).count()
-    return jsonify({
-        'total': total,
-        'completadas': completadas,
-        'pendientes': total - completadas
-    })
 
-@app.errorhandler(404)
-def no_encontrado(e):
-    """Manejar errores 404"""
-    return render_template('error.html', code=404, message='Página no encontrada'), 404
-
-@app.errorhandler(500)
-def error_servidor(e):
-    """Manejar errores 500"""
-    db.session.rollback()
-    return render_template('error.html', code=500, message='Error interno del servidor'), 500
-
-# ==================== INICIALIZACIÓN ====================
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        print("✓ Base de datos inicializada")
-        print("✓ Ejecutando en http://localhost:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
-
-@app.route('/tarea/<int:id>/completar', methods=['POST'])
-def completar_tarea(id):
-    tarea = Tarea.query.get_or_404(id)
-    tarea.completada = True
-    db.session.commit()
-    flash('Tarea marcada como completada!', 'success')
-    return redirect(url_for('index'))
-
-@app.route('/tarea/<int:id>/descompletar', methods=['POST'])
-def descompletar_tarea(id):
-    tarea = Tarea.query.get_or_404(id)
-    tarea.completada = False
-    db.session.commit()
-    flash('Tarea marcada como pendiente!', 'success')
-    return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    app.run(debug=True) 
+app = create_app()

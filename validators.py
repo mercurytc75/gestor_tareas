@@ -2,8 +2,7 @@
 Validadores para formularios
 """
 from datetime import datetime
-from functools import wraps
-from flask import flash, redirect, url_for
+
 
 def validar_formulario_tarea(form_data):
     """
@@ -44,10 +43,3 @@ def validar_formulario_tarea(form_data):
         'fecha_limite': fecha_limite,
         'prioridad': prioridad
     }
-
-def manejo_errores_validacion(f):
-    """Decorador para manejar errores de validación"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        return f(*args, **kwargs)
-    return decorated_function

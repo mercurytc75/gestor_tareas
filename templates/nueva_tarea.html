@@ -53,9 +53,9 @@
                                 <i class="fas fa-flag me-2 text-primary"></i>Prioridad
                             </label>
                             <select class="form-select form-select-lg" id="prioridad" name="prioridad">
-                                <option value="baja">🟢 Baja</option>
-                                <option value="media" selected>🟡 Media</option>
-                                <option value="alta">🔴 Alta</option>
+                                <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                                <option value="alta">Alta</option>
                             </select>
                         </div>
                     </div>
@@ -64,7 +64,7 @@
                         <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
                             <i class="fas fa-check me-2"></i>Crear Tarea
                         </button>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </a>
                     </div>

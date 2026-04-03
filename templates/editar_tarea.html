@@ -18,21 +18,21 @@
                         <label for="titulo" class="form-label fw-bold">
                             <i class="fas fa-heading me-2 text-primary"></i>Título <span class="text-danger">*</span>
                         </label>
-                        <input type="text" class="form-control form-control-lg" id="titulo" name="titulo" 
+                        <input type="text" class="form-control form-control-lg" id="titulo" name="titulo"
                                value="{{ tarea.titulo }}" required maxlength="100">
                     </div>
-                    
+
                     <div class="mb-4">
                         <label for="descripcion" class="form-label fw-bold">
                             <i class="fas fa-align-left me-2 text-primary"></i>Descripción
                         </label>
-                        <textarea class="form-control" id="descripcion" name="descripcion" 
+                        <textarea class="form-control" id="descripcion" name="descripcion"
                                   rows="4" maxlength="1000">{{ tarea.descripcion or '' }}</textarea>
                         <small class="form-text text-muted d-block mt-2">
                             <i class="fas fa-info-circle me-1"></i>Proporciona contexto o pasos (máx. 1000 caracteres)
                         </small>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-4">
                             <label for="fecha_limite" class="form-label fw-bold">
@@ -41,23 +41,22 @@
                             <input type="date" class="form-control form-control-lg" id="fecha_limite" name="fecha_limite"
                                    value="{{ tarea.fecha_limite.strftime('%Y-%m-%d') if tarea.fecha_limite else '' }}">
                         </div>
-                        
+
                         <div class="col-md-6 mb-4">
                             <label for="prioridad" class="form-label fw-bold">
                                 <i class="fas fa-flag me-2 text-primary"></i>Prioridad
                             </label>
                             <select class="form-select form-select-lg" id="prioridad" name="prioridad">
-                                <option value="baja" {{ 'selected' if tarea.prioridad == 'baja' else '' }}>🟢 Baja</option>
-                                <option value="media" {{ 'selected' if tarea.prioridad == 'media' else '' }}>🟡 Media</option>
-                                <option value="alta" {{ 'selected' if tarea.prioridad == 'alta' else '' }}>🔴 Alta</option>
+                                <option value="baja" {{ 'selected' if tarea.prioridad == 'baja' else '' }}>Baja</option>
+                                <option value="media" {{ 'selected' if tarea.prioridad == 'media' else '' }}>Media</option>
+                                <option value="alta" {{ 'selected' if tarea.prioridad == 'alta' else '' }}>Alta</option>
                             </select>
                         </div>
                     </div>
-                    
-                    <!-- Estado de Completada -->
+
                     <div class="alert alert-info mb-4">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="completada" 
+                            <input class="form-check-input" type="checkbox" id="completada"
                                    {{ 'checked' if tarea.completada else '' }} disabled>
                             <label class="form-check-label fw-bold mb-0" for="completada">
                                 {% if tarea.completada %}
@@ -71,12 +70,12 @@
                             <i class="fas fa-info-circle me-1"></i>Para cambiar el estado, usa el checkbox en la página principal.
                         </small>
                     </div>
-                    
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-warning btn-lg flex-grow-1">
                             <i class="fas fa-save me-2"></i>Actualizar Tarea
                         </button>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </a>
                     </div>
@@ -85,29 +84,26 @@
         </div>
     </div>
 </div>
-{% efunction autoResizeTextarea() {
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('descripcion');
+    function autoResizeTextarea() {
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
     }
-    
     textarea.addEventListener('input', autoResizeTextarea);
-    autoResizeTextarea(); // Initial resize
-    
-    // Validación básica del formulario
+    autoResizeTextarea();
+
     const form = document.getElementById('form-editar-tarea');
     form.addEventListener('submit', function(e) {
         if (!document.getElementById('titulo').value.trim()) {
             e.preventDefault();
             alert('El título es obligatorio');
         }
-    })
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
     });
-    
-    // Trigger initial resize
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
 });
 </script>
-{% endblock %} 
+{% endblock %}

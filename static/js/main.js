@@ -3,16 +3,6 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // ==================== Toast Auto-Dismiss ====================
-    const toasts = document.querySelectorAll('.toast');
-    toasts.forEach(toast => {
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 5000
-        });
-        bsToast.show();
-    });
 
     // ==================== Toggle Tareas ====================
     const toggleTasks = document.querySelectorAll('.toggle-task');
@@ -24,7 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleToggleTask(event) {
         const checkbox = event.currentTarget;
         const taskId = checkbox.dataset.taskId;
-        const card = document.querySelector(`[data-task-id="${taskId}"]`);
+        const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`)
+            || document.querySelector(`[data-task-id="${taskId}"]`)?.closest('.task-card');
+        if (!card) return;
         
         // Deshabilitar checkbox mientras se envía la solicitud
         checkbox.disabled = true;
@@ -126,14 +118,22 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/api/estadisticas')
             .then(response => response.json())
             .then(data => {
-                // Actualizar valores en el DOM si existen
-                const statElements = document.querySelectorAll('[data-stat]');
-                if (statElements.length > 0) {
-                    // Aquí puedes actualizar elementos si tienes data-stat en HTML
-                    console.log('Estadísticas actualizadas:', data);
-                }
+                const total = data.total ?? 0;
+                const completadas = data.completadas ?? 0;
+                const pendientes = data.pendientes ?? 0;
+                const pct = total === 0 ? 0 : Math.round((completadas / total) * 100);
+                const map = {
+                    total: String(total),
+                    completadas: String(completadas),
+                    pendientes: String(pendientes),
+                    porcentaje: pct + '%'
+                };
+                Object.keys(map).forEach(function(key) {
+                    const el = document.querySelector('[data-stat="' + key + '"]');
+                    if (el) el.textContent = map[key];
+                });
             })
-            .catch(error => console.error('Error al actualizar estadísticas:', error));
+            .catch(function(err) { console.error('Error al actualizar estadísticas:', err); });
     }
 
     // ==================== Validación de Formularios ====================
@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showNotification('Conexión perdida', 'warning');
     });
 
-    console.log('✓ Script principal cargado correctamente');
 });
 
 // Prevenir múltiples envíos de formulario

@@ -2,6 +2,13 @@
 Tests para la aplicación de tareas
 Ejecutar: python -m pytest
 """
+import sys
+from pathlib import Path
+
+# Añadir 'src' al path para que las importaciones internas funcionen
+ROOT = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "src"))
+
 import pytest
 from app import create_app
 from models import db, Tarea

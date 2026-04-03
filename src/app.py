@@ -16,6 +16,9 @@ def create_app(config_name=None):
         name = 'default'
 
     app = Flask(__name__, instance_relative_config=True)
+    
+    # Asegurar que el root_path sea el directorio de este archivo
+    app.root_path = os.path.dirname(__file__)
     app.config.from_object(config_map[name])
 
     os.makedirs(app.instance_path, exist_ok=True)
@@ -40,3 +43,9 @@ def create_app(config_name=None):
 
 
 app = create_app()
+
+if __name__ == '__main__':
+    # Si se ejecuta directamente desde src/, las importaciones funcionan
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
